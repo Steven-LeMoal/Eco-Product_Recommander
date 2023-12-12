@@ -6,9 +6,11 @@ Nouveau projet :
 
 Sites à scrapper : 
 
-https://www.carrefour.fr/s?q= + {nom_nourriture} 
+https://www.carrefour.fr/s?q= + {nom_nourriture} (data in the github)
 
-https://fr.openfoodfacts.org/cgi/search.pl?search_terms= + {nom_nourriture} + &search_simple=1&action=process 
+https://fr.openfoodfacts.org/cgi/search.pl?search_terms= + {nom_nourriture} + &search_simple=1&action=process  (download the json file)
+
+(json generated using the api / request of openfoodfact : https://drive.google.com/file/d/1-iRCuS0x9eZOWKCoifC2TDhl44qyP3EK/view?usp=sharing)
 
 Question qu’on se pose : 
 
