@@ -2,6 +2,17 @@ import streamlit as st
 import json
 from Products_database import ProductDatabase
 from shopping import ShoppingCart
+import numpy as np
+from sklearn.manifold import TSNE
+import plotly.graph_objs as go
+from gensim.models import Word2Vec
+import random
+from sklearn.metrics.pairwise import cosine_similarity
+
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity as cos_sim
+
+from PIL import Image
 
 json_file = "final_extracted_products.json"
 unknown = ["unknown", "not-applicable"]
@@ -10,6 +21,10 @@ f = open(json_file)
 json_data = json.load(f)
 
 product_database = ProductDatabase(json_data)
+
+# Load Word2Vec model
+model = Word2Vec.load("ingredients2vec.model")
+
 
 if "cart" not in st.session_state:
     st.session_state.cart = ShoppingCart(product_database)
@@ -66,6 +81,47 @@ def add_custom_css():
     # }
 
 
+def product_embedding(ingredients):
+    valid_ingredients = [
+        ingredient for ingredient in ingredients if ingredient in model.wv
+    ]
+    if not valid_ingredients:
+        return np.zeros(model.vector_size)
+    return np.mean([model.wv[ingredient] for ingredient in valid_ingredients], axis=0)
+
+
+def compute_embeddings_and_similarity():
+    # Compute embeddings for all products
+    embeddings = {
+        product_id: product_embedding(product.ingredients)
+        for product_id, product in product_database.products.items()
+    }
+
+    # Compute similarity matrix (example using cosine similarity)
+    embeddings_matrix = np.array(list(embeddings.values()))
+    similarity_matrix = cosine_similarity(embeddings_matrix)
+
+    # Store embeddings and similarity matrix in session state
+    st.session_state.embeddings_keys = list(embeddings.keys())
+    st.session_state.similarity_matrix = similarity_matrix
+
+
+embeddings_computed = False
+if not embeddings_computed and "similarity_matrix" not in st.session_state:
+    compute_embeddings_and_similarity()
+    embeddings_computed = True
+
+
+def ngram_similarity(name1, name2):
+    """Calculate n-gram similarity between two strings."""
+    vectorizer = TfidfVectorizer(min_df=1, analyzer="char", ngram_range=(2, 3))
+    tfidf = vectorizer.fit_transform([name1, name2])
+    return cos_sim(tfidf)[0, 1]
+
+
+# -------------------------------- WEBSITE PAGE ------------------------------
+
+
 def page_search_products():
     add_custom_css()
     update_cart_info()
@@ -76,6 +132,15 @@ def page_search_products():
     st.markdown(cart_info)
     query = st.text_input("\n\nEnter a product name or property to search:")
     search_results = product_database.search_products_ngram(query)
+
+    if search_results:
+        # Add a checkbox to filter for priced products
+        show_priced_only = st.checkbox("Show only products with prices")
+
+        if show_priced_only:
+            search_results = [
+                product for product in search_results if product.price is not None
+            ]
 
     if search_results:
         # Extracting unique values for each property for filtering
@@ -252,6 +317,143 @@ def page_search_products():
         st.write("No products found.")
 
 
+def display_revised_cart():
+    st.header("Revised Cart")
+    # Display products in the revised cart
+
+    header_cols = st.columns([9, 2, 2, 2])
+    headers = ["Name", "Price", "Eco Score", "Nutriscore"]
+    for col, header in zip(header_cols, headers):
+        col.write(header)
+
+    # Rows for each product
+    for product_id, product in st.session_state.revised_cart.cart.items():
+        col_name, col_price, col_eco, col_nutri = st.columns([9, 2, 2, 2])
+
+        with col_name:
+            expander = st.expander(f"{product.name}")
+        with col_price:
+            st.text(f"${product.price}" if product.price else "N/A")
+        with col_eco:
+            st.text(
+                product.eco_grade
+                if product.eco_grade and product.eco_grade not in unknown
+                else "N/A"
+            )
+        with col_nutri:
+            st.text(
+                product.nutriscore_grade
+                if product.nutriscore_grade and product.nutriscore_grade not in unknown
+                else "N/A"
+            )
+
+        with expander:
+            st.markdown(product.format_product_details())
+
+    # st.write(
+    #     f"Total Items in Cart : {st.session_state.total_items}/10 - Total Price: ${st.session_state.total_price}"
+    # )
+
+    if st.button("Use Revised Cart"):
+        st.session_state.cart.cart = st.session_state.revised_cart
+
+        update_cart_info()
+        st.experimental_rerun()
+
+
+grade_scores = {
+    "a": 1,
+    "b": 2,
+    "c": 3,
+    "d": 4,
+    "e": 5,
+    "f": 6,
+    "": 7,
+    None: 7,
+    "unknown": 7,
+}
+
+
+def meets_criteria(product, option, current_grade):
+    # Define a scoring system for the grades
+
+    if option == "Make Vegan":
+        return "vegan" in product.vegetarian
+    elif option == "Make Vegetarian":
+        return "vegetarian" in product.vegetarian
+    elif option == "Best Eco Grade":
+        product_grade = product.eco_grade if product.eco_grade in grade_scores else ""
+        return grade_scores[product_grade] < grade_scores[current_grade.eco_grade]
+    elif option == "Best Nutri Score":
+        product_grade = (
+            product.nutriscore_grade if product.nutriscore_grade in grade_scores else ""
+        )
+        return (
+            grade_scores[product_grade] < grade_scores[current_grade.nutriscore_grade]
+        )
+
+
+def find_similar_product(current_product_id, option, alpha, similarity_threshold):
+    # Retrieve the index of the current product in the similarity matrix
+    current_index = st.session_state.embeddings_keys.index(current_product_id)
+
+    highest_similarity = 0
+    most_similar_product_id = current_product_id  # Default to current product
+    curr_product = product_database.get_product(current_product_id)
+    current_name = curr_product.name
+
+    grade = "Best" in option
+
+    for product_id in st.session_state.embeddings_keys:
+        if product_id == current_product_id:
+            continue  # Skip the same product
+
+        # Retrieve the index of the other product
+        other_index = st.session_state.embeddings_keys.index(product_id)
+
+        # Get the similarity score from the precomputed matrix
+        similarity = st.session_state.similarity_matrix[current_index][other_index]
+
+        other = product_database.get_product(product_id)
+
+        name_similarity = 0
+        if current_name and other.name:
+            name_similarity = ngram_similarity(current_name, other.name)
+
+        # Combined score: alpha * name_similarity + (1 - alpha) * embedding_similarity
+        combined_score = alpha * name_similarity + (1 - alpha) * similarity
+
+        if (
+            combined_score > highest_similarity
+            and combined_score >= similarity_threshold
+        ):
+            # Check if the product meets the selected criteria
+            if meets_criteria(
+                other,
+                option,
+                None if not grade else curr_product,
+            ):
+                highest_similarity = combined_score
+                most_similar_product_id = product_id
+
+    return most_similar_product_id
+
+
+def revise_cart(option, alpha, similarity_threshold):
+    revised_cart = ShoppingCart(product_database)
+
+    for product_id in st.session_state.cart.cart.keys():
+        # Find the most similar product based on embeddings and criteria
+        similar_product_id = find_similar_product(
+            product_id, option, alpha, similarity_threshold
+        )
+        revised_cart.add_product(similar_product_id)
+
+    # Store the revised cart in the session state
+    st.session_state.revised_cart = revised_cart
+    display_revised_cart()
+
+
 def page_view_cart():
     add_custom_css()
     st.header("Shopping Cart")
@@ -313,6 +515,16 @@ def page_view_cart():
             f"Total Items in Cart : {st.session_state.total_items}/10 - Total Price: ${st.session_state.total_price}"
         )
 
+        st.header("Revise Your Cart")
+        revise_option = st.selectbox(
+            "Choose your revision criteria:",
+            ("Make Vegan", "Make Vegetarian", "Best Eco Grade", "Best Nutri Score"),
+        )
+        alpha = st.slider("Weight for Name Similarity (alpha)", 0.0, 1.0, 0.5)
+        similarity_threshold = st.slider("Minimum similarity threshold", 0.0, 1.0, 0.5)
+        if st.button("Revise Cart"):
+            revise_cart(revise_option, alpha, similarity_threshold)
+
     else:
         st.write("Your cart is empty.")
 
@@ -350,6 +562,162 @@ def page_welcome():
     st.markdown(
         "This project is only for educationnal purposis and the data used (price) will not be made public"
     )
+    
+    image = Image.open("open_food_fact.png")
+
+
+# ... [Previous imports and code] ...
+
+
+def product_embedding_3d_page():
+    st.title("Product Embedding Visualization")
+
+    # Slider for selecting the percentage of products
+    percentage = st.slider(
+        "Select the percentage of products for visualization", 0, 100, 10
+    )
+
+    # User selection for coloring points
+
+    color_by = st.selectbox(
+        "Color points by",
+        ["Eco Grade", "Nutriscore Grade", "Vegetarian Status", "Vegan Status"],
+    )
+
+    # Function to determine color based on the selected attribute
+    def get_color(product):
+        if color_by == "Eco Grade":
+            return eco_grade_color_mapping.get(product.eco_grade, default_color)
+        elif color_by == "Nutriscore Grade":
+            return nutriscore_color_mapping.get(product.nutriscore_grade, default_color)
+        elif color_by == "Vegetarian Status":
+            if "vegetarian" in product.vegetarian:
+                return vegetarian_color["vegetarian"]
+            elif "non vegetarian" in product.vegetarian:
+                return vegetarian_color["non vegetarian"]
+            else:
+                return default_color
+        elif color_by == "Vegan Status":
+            if "vegan" in product.vegetarian:
+                return vegan_color["vegan"]
+            elif "non vegan" in product.vegetarian:
+                return vegan_color["non vegan"]
+            else:
+                return default_color
+
+    # Color mappings (customize as needed)
+    eco_grade_color_mapping = {
+        "a": "green",
+        "b": "blue",
+        "c": "yellow",
+        "d": "orange",
+        "e": "red",
+        "f": "purple",
+    }
+    nutriscore_color_mapping = {
+        "a": "green",
+        "b": "blue",
+        "c": "yellow",
+        "d": "orange",
+        "e": "red",
+        "f": "purple",
+    }
+
+    default_color = "gray"
+
+    vegan_color = {
+        "vegan": "lightblue",
+        "non vegan": "red",
+    }
+
+    vegetarian_color = {
+        "vegetarian": "lightblue",
+        "non vegetarian": "blue",
+    }
+
+    color_mappings = (
+        eco_grade_color_mapping
+        if color_by == "Eco Grade"
+        else nutriscore_color_mapping
+        if color_by == "Nutriscore Grade"
+        else vegan_color
+        if color_by == "Vegan Status"
+        else vegetarian_color
+    )
+
+    if (
+        "percentage" not in st.session_state
+        or st.session_state.percentage != percentage
+    ):
+        st.session_state.percentage = percentage
+
+        # Randomly select a percentage of products
+        num_products = len(json_data)
+        num_selected = int(num_products * (percentage / 100))
+        selected_products = random.sample(list(json_data.values()), num_selected)
+
+        # Compute embeddings for the selected products
+        selected_embeddings = [
+            product_embedding(product["ingredients_tags"])
+            for product in selected_products
+        ]
+
+        # Convert embeddings to a format suitable for visualization
+        embedding_matrix = np.array(selected_embeddings)
+
+        # Use t-SNE for dimensionality reduction to 3 components
+        tsne = TSNE(n_components=3, random_state=1236)
+        reduced_embeddings = tsne.fit_transform(embedding_matrix)
+
+        # ... [Code to compute embeddings based on the selected percentage] ...
+        # Update session state
+        st.session_state.embeddings = reduced_embeddings
+        st.session_state.selected_products = selected_products
+
+        # Assign colors to each product based on the selected attribute
+    colors = [
+        get_color(product_database.get_product(product["_id"]))
+        for product in st.session_state.selected_products
+    ]
+
+    # Create a list to hold traces
+    data = []
+
+    scatter_trace = go.Scatter3d(
+        x=st.session_state.embeddings[:, 0],
+        y=st.session_state.embeddings[:, 1],
+        z=st.session_state.embeddings[:, 2],
+        mode="markers",
+        marker=dict(size=5, opacity=0.8, color=colors),  # Use the computed colors
+        text=[
+            (f"{product_database.get_product(product['_id'])}").replace("\n", "<br>")
+            for product in st.session_state.selected_products
+        ],
+        hoverinfo="text",
+        name="Products",
+    )
+
+    data.append(scatter_trace)
+
+    # Add invisible traces for the legend
+    for label, color in color_mappings.items():
+        legend_trace = go.Scatter3d(
+            x=[None],
+            y=[None],
+            z=[None],  # No actual data
+            mode="markers",
+            marker=dict(size=10, color=color),
+            name=label,  # Label for the legend
+        )
+        data.append(legend_trace)
+
+    # Define the layout and figure
+    layout = go.Layout(
+        margin=dict(l=0, r=0, b=0, t=0), title="3D Product Embeddings", showlegend=True
+    )
+    fig = go.Figure(data=data, layout=layout)
+
+    st.plotly_chart(fig, use_container_width=True)
 
 
 st.set_page_config(
@@ -359,15 +727,19 @@ st.set_page_config(
     initial_sidebar_state="expanded",  # Keep the sidebar expanded
 )
 
-# Navigation
+# Add the new page to the navigation
 st.sidebar.title("Navigation")
-page = st.sidebar.radio("Go to", ("Welcome", "Search Products", "View Cart"))
+page = st.sidebar.radio(
+    "Go to",
+    ("Welcome", "Search Products", "View Cart", "Product Embedding Visualization"),
+)
 
 if page == "Welcome":
     page_welcome()
-if page == "Search Products":
+elif page == "Search Products":
     page_search_products()
 elif page == "View Cart":
     page_view_cart()
-
+elif page == "Product Embedding Visualization":
+    product_embedding_3d_page()
 # Run this script with `streamlit run app.py`

@@ -26,4 +26,7 @@ class ShoppingCart(object):
         return self.cart.values()
 
     def total_price(self):
-        return sum(product.price if product.price is not None else 0 for product in self.cart.values())
+        return sum(
+            product.price if product.price is not None else 0
+            for product in self.cart.values()
+        )

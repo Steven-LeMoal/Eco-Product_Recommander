@@ -16,21 +16,26 @@ class Product(object):
         #     "url"
         # )
 
-        self.price = None
+        self.price = product_data.get("price", 0)
 
         self.agribalyse = product_data.get("agribalyse")
         self.eco_score = product_data.get("ecoscore_score")
         self.eco_grade = product_data.get("ecoscore_grade")
 
-        self.nutriscore = product_data.get("nutriscore_scor_data", {})
+        self.nutriscore = product_data.get("nutriscore_data", {})
         self.nutriscore_grade = product_data.get("nutriscore_grade")
         self.ingredients = product_data.get("ingredients_tags", [" ", " "])
+
+        self.vegetarian = product_data.get("ingredients_analysis_tags", [])
+        self.environnement_impact = product_data.get(
+            "environment_impact_level_tags", []
+        )
 
     def __str__(self):
         """
         String representation of the product.
         """
-        return f"Product(ID: {self.id}, Name: {self.name}, Price: {self.price}, Eco Score: {self.eco_grade}, Nutriscore Score: {self.nutriscore_grade})"
+        return f"Product(\nID: {self.id}\n Name: {self.name}\n Price: {self.price}\n Eco Score: {self.eco_grade}\n Nutriscore Score: {self.nutriscore_grade}\n)"
 
     def format_product_details(self):
         details = ""
@@ -43,9 +48,7 @@ class Product(object):
         details += f"**Nutriscore:** {self.nutriscore}\n\n"
         details += f"**Nutriscore Grade:** {self.nutriscore_grade}\n\n"
         try:
-            details += f"**Ingredients:** {', '.join(self.ingredients)}\n\n".replace(
-                    "en:", ""
-                ).replace("fr:", "")
+            details += f"**Ingredients:** {self.ingredients}\n\n"
         except Exception:
             details += "**Ingredients:** Not available\n\n"
         return details
