@@ -1,23 +1,82 @@
-WEBSCRAPPING  (ESILV A5 - DIA)
+# Eco-Recommend Product Recommendation App
 
-Group : Natacha Batmini ; Steven Le Moal 
+## Overview
+Eco-Recommend is a Streamlit-based web application designed to assist users in making environmentally responsible and health-conscious purchasing decisions. It leverages product data to recommend items based on ecological and nutritional scores, and offers features like product search, cart management, and eco-friendly product suggestions.
+This project is only for educationnal purposis only and the data used (price) will/should not be made public or be used in any way others than for this demonstration project.
 
-Nouveau projet : 
+**Group:** Natacha Batmini Batmaname; Steven Le Moal
 
-Sites à scrapper : 
+**New Project:**
+- **Question:** What are the best food products according to my nutritional and environmental criteria? How to compare prices and nutritional quality of food products?
+- **Objective:** To provide a personalized selection of food products, based on specific criteria such as nutritional value, cost, and environmental impact, by analyzing and comparing information available on targeted websites.
 
-https://www.carrefour.fr/s?q= + {nom_nourriture} (data in the github)
+**Sites to Scrape:**
+- `https://www.carrefour.fr/s?q={nom_nourriture}` (data in the GitHub)
+- `https://fr.openfoodfacts.org/cgi/search.pl?search_terms={nom_nourriture}&search_simple=1&action=process` (download the JSON file)
+- JSON generated using the API/request of OpenFoodFact: [Google Drive Link](https://drive.google.com/file/d/1-iRCuS0x9eZOWKCoifC2TDhl44qyP3EK/view?usp=sharing)
 
-https://fr.openfoodfacts.org/cgi/search.pl?search_terms= + {nom_nourriture} + &search_simple=1&action=process  (download the json file)
+## Features
+- **Product Search**: Search for products based on names or attributes. Supports filtering by eco-scores, nutriscore-scores, and price ranges.
+- **Shopping Cart**: Add and remove products from a shopping cart. View total price and item count.
+- **Eco-Friendly Alternatives**: Suggests alternative products with better eco-scores or healthier options.
+- **3D Product Embedding Visualization (Ingredients2vec)**: Explore products in a 3D space based on their ingredient embeddings. Interact with the plot to learn more about each product.
+- **Cart Revision Options**: Revise the cart to make it vegan, vegetarian, or to optimize for the best eco or nutri-scores.
 
-(json generated using the api / request of openfoodfact : https://drive.google.com/file/d/1-iRCuS0x9eZOWKCoifC2TDhl44qyP3EK/view?usp=sharing)
+## NLP
+Please refer to the notebook (nlp) for more details or to this presentation : https://docs.google.com/presentation/d/1OG3j9HyNXKs2Fm7S1vtEgHyg1kjnJLevY0DeOD8iKH8/edit?usp=sharing
 
-Question qu’on se pose : 
+## Installation and Setup
+1. **Clone the Repository**:  
+   `git clone https://github.com/Steven-LeMoal/Eco-Product_Recommander.git`
+2. **Load Data**:
+   Please download the data and put the files in the data folder : https://drive.google.com/drive/folders/1dqSfEpSFdDmLPGXw4rHxPSA2ODhidTrl?usp=sharing
+   (only final_extracted_products.json is necessary to run the streamlit app)
+   Place your product JSON data in the designated data directory.
+3. **Run the Application**:  
+   Run the Streamlit app, you can directly use the notebook (dbs_and_streamlite_use):  
+   `streamlit run app.py`
 
-Quels sont les meilleurs produits alimentaires selon mes critères nutritionnels et environnementaux ? 
+## Folder Structure
+```
+Project
+│   app.py
+│   final_extracted_products.json
+│
+├───data
+│       Prices.csv
+│       PRICE_subset.csv
+│       data.csv
+│       final_extracted_products.json (only necessary for streamlite app)
+│       PRICE_subset.json
+│       all_veg_data.csv
+│
+├───logs
+│       embedding_tfidf.ckpt-1.data-00000-of-00001
+│       embedding.ckpt-1.index
+│       ...
+│
+├───model
+│       ingredients2vec.model
+│
+├───notebook
+│       full_scrapping.ipynb
+│       scrapping_food_fact.ipynb
+│       nlp.ipynb
+│       dbs_and_streamlite_use.ipynb
+│
+└───streamlite
+    │   Products_database.py
+    │   shopping.py
+    │   Products.py
+    │   open_food_fact.png
+    │   ...
+```
 
-Comment comparer les prix et la qualité nutritionnelle des produits alimentaires ? 
+## Contributing
+Contributions to Eco-Recommend are welcome! Please read our contributing guidelines to get started.
 
-Objectif : 
+## License
+[MIT License](LICENSE)
 
-Fournir une sélection personnalisée de produits alimentaires, basée sur des critères spécifiques tels que la valeur nutritionnelle, le coût, et l'impact environnemental, en analysant et comparant les informations disponibles sur les sites ciblés. 
+## Contact
+For any queries or suggestions, please reach out to us at [stevenlemoal-@outlook.fr].
