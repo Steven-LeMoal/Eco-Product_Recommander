@@ -4,7 +4,7 @@
 Eco-Recommend is a Streamlit-based web application designed to assist users in making environmentally responsible and health-conscious purchasing decisions. It leverages product data to recommend items based on ecological and nutritional scores, and offers features like product search, cart management, and eco-friendly product suggestions.
 This project is only for educationnal purposis only and the data used (price) will/should not be made public or be used in any way others than for this demonstration project.
 
-**Group (srapping & website):** Natacha Batmini Batmaname; Steven Le Moal
+**Group (srapping & website):** Natacha Batmini Batmanabane; Steven Le Moal
 
 **New Project:**
 - **Question:** What are the best food products according to my nutritional and environmental criteria? How to compare prices and nutritional quality of food products?
