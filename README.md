@@ -5,6 +5,7 @@ Eco-Recommend is a Streamlit-based web application designed to assist users in m
 This project is only for educationnal purposis only and the data used (price) will/should not be made public or be used in any way others than for this demonstration project.
 
 **Group (srapping & website):** Natacha Batmini Batmanabane; Steven Le Moal
+see (scrapping projet presentation) : [Link_PPT](https://devinci.sharepoint.com/sites/PROJETDRONE/_layouts/15/guestaccess.aspx?share=EUFDlt3wj_5NkvCGA7o_riMBKWN675rrPZXjcJ8T0EwQyw&e=PFmh1j)
 
 **New Project:**
 - **Question:** What are the best food products according to my nutritional and environmental criteria? How to compare prices and nutritional quality of food products?
