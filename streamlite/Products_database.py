@@ -1,4 +1,8 @@
-from Products import Product
+try:
+    from Products import Product
+except Exception:
+    from streamlite.Products import Product
+
 import numpy as np
 
 
