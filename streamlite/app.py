@@ -1,7 +1,13 @@
 import streamlit as st
 import json
-from Products_database import ProductDatabase
-from shopping import ShoppingCart
+
+try:
+    from Products_database import ProductDatabase
+    from shopping import ShoppingCart
+except Exception:
+    from streamlite.Products_database import ProductDatabase
+    from streamlite.shopping import ShoppingCart
+
 import numpy as np
 from sklearn.manifold import TSNE
 import plotly.graph_objs as go
@@ -12,9 +18,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity as cos_sim
 
-from PIL import Image
 
-json_file = "../data/final_extracted_products.json"
+json_file = "data/final_extracted_products.json"
 unknown = ["unknown", "not-applicable"]
 
 f = open(json_file)
@@ -23,7 +28,7 @@ json_data = json.load(f)
 product_database = ProductDatabase(json_data)
 
 # Load Word2Vec model
-model = Word2Vec.load("../model/ingredients2vec.model")
+model = Word2Vec.load("model/ingredients2vec.model")
 
 # Grades scores of the eco-score and nutri-score
 grade_scores = {
@@ -156,7 +161,9 @@ def page_search_products():
 
         if show_priced_only:
             search_results = [
-                product for product in search_results if product.price is not None
+                product
+                for product in search_results
+                if product.price is not None and product.price > 0.0
             ]
 
     if search_results:

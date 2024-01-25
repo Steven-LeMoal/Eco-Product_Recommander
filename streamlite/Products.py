@@ -16,7 +16,7 @@ class Product(object):
         #     "url"
         # )
 
-        self.price = product_data.get("price", 0)
+        self.price = float(product_data.get("price", 0))
 
         self.agribalyse = product_data.get("agribalyse")
         self.eco_score = product_data.get("ecoscore_score")
@@ -42,7 +42,7 @@ class Product(object):
         details += f"**ID:** {self.id}\n\n"
         details += f"**Name:** {self.name}\n\n"
         details += f"**Quantity:** {self.quantity}\n\n"
-        details += f"**Price:** ${self.price if self.price else 'N/A'}\n\n"
+        details += f"**Price:** {self.price if self.price else 'N/A'}€\n\n"
         details += f"**Eco Score:** {self.eco_score}\n\n"
         details += f"**Eco Grade:** {self.eco_grade}\n\n"
         details += f"**Nutriscore:** {self.nutriscore}\n\n"
