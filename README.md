@@ -25,6 +25,10 @@ This project is only for educationnal purposis only and the data used (price) wi
 ## NLP
 Please refer to the notebook (nlp) for more details or to this presentation : https://docs.google.com/presentation/d/1OG3j9HyNXKs2Fm7S1vtEgHyg1kjnJLevY0DeOD8iKH8/edit?usp=sharing
 
+For better visualisation, please check the nlp notebook :
+You can launch tensorboard on logs or logs_tfidf then go to projector (then use TSNE and put supervision > 0)
+`tensorboard --logdir=logs_tfidf`
+
 ## Installation and Setup
 1. **Clone the Repository**:  
    `git clone https://github.com/Steven-LeMoal/Eco-Product_Recommander.git`
